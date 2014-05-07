@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html class="no-js" ng-app="test"><!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+    <title></title>
+    <meta content="width=device-width" name="viewport">
+    
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" />
+    <link href="/dist/release/ui-grid.css" rel="stylesheet">
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="/lib/test/angular/1.2.16/angular.js"></script>
+    <script src="/dist/release/ui-grid.js"></script>
+
+    <style>
+      body {
+        padding: 20px;
+      }
+
+      .grid {
+        height: 600px;
+        width: 800px;
+        -webkit-transform: translateZ(0);
+      }
+    </style>
+  </head>
+  <body ng-controller="Main">
+    <!-- <h1>Test</h1> -->
+
+      <div class="row">
+        <h2>Grid</h2>
+        <div ui-grid="gridOptions" class="grid" ui-grid-sidebar ui-grid-resize-columns></div>
+      </div>
+
+      <br>
+      <br>
+
+      <script>
+
+      var app = angular.module('test', ['ui.grid', 'ui.grid.sidebar', 'ui.grid.resizeColumns']);
+
+      app.controller('Main', function($scope, $http) {
+          $scope.gridOptions = {};
+          $scope.gridOptions.columnDefs = [
+                {name:"First Name", field:"firstName", width: 100},
+                {name:"Last Name", field:"lastName", width: 100},
+                {name:"Age", field:"age", width: 100},
+                {name:"Company", field:"company", width: 100},
+                {name:"Employed", field:"employed", width: 100}];
+
+
+
+          $scope.gridOptions.data = [
+          {
+              "id": 0,
+              "age": 31,
+              "firstName": "Smith",
+              "lastName": "Pena",
+              "company": "Xplor",
+              "employed": false
+          },
+          {
+              "id": 1,
+              "age": 21,
+              "firstName": "Sadie",
+              "lastName": "Lowery",
+              "company": "Quinex",
+              "employed": true
+          },
+          {
+              "id": 2,
+              "age": 27,
+              "firstName": "Cathleen",
+              "lastName": "Baldwin",
+              "company": "Signidyne",
+              "employed": false
+          },
+          {
+              "id": 3,
+              "age": 27,
+              "firstName": "Deborah",
+              "lastName": "Savage",
+              "company": "Pyramia",
+              "employed": true
+          },
+          {
+              "id": 4,
+              "age": 33,
+              "firstName": "Kirsten",
+              "lastName": "Espinoza",
+              "company": "Buzzworks",
+              "employed": false
+          },
+          {
+              "id": 5,
+              "age": 26,
+              "firstName": "Ward",
+              "lastName": "Nichols",
+              "company": "Xleen",
+              "employed": false
+          }
+        ]
+      });
+
+    </script>
+  </body>
+</html>

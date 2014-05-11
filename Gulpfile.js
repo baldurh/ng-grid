@@ -13,6 +13,12 @@ var gulp = require('gulp'),
     filter = require('gulp-filter'),
     concat = require('gulp-concat'),
     uglify = require('gulp-uglify'),
+    rename = require('gulp-rename'),
+    less = require('gulp-less'),
+    minifyCSS = require('gulp-minify-css'),
+    replace = require('gulp-replace'),
+    connect = require('gulp-connect'),
+    open = require('gulp-open'),
     e2e = args.e2e,
     prod = args.prod,
     dev = args.dev || !prod,
@@ -23,20 +29,20 @@ var gulp = require('gulp'),
  */
 
 var paths = {
-  dist: 'dist2'
-}
+  dest: 'dev'
+};
 
 /**
  * Filters
  */
 
-var srcTestsFilter = filter('!src/**/test/*');
+var srcNoTestsFilter = filter('!**/*.spec.js');
 
 /**
  * Handlers
  */
 
-var mochaErrorHandler = function (err) { 
+var errorHandler = function (err) { 
   gutil.beep();
   this.emit('end');
 };
@@ -45,19 +51,19 @@ var mochaErrorHandler = function (err) {
  * Tests
  */
 
-gulp.task('test', function (cb) {
-  gulp.src('test/**/*.spec.js')
+gulp.task('test', function () {
+  return gulp.src('test/**/*.spec.js')
     .pipe(jshint())
     .pipe(jshint.reporter(jshintStylish))
     .pipe(jscs())
     .pipe(mocha({reporter: 'spec'}))
-    .on('error', mochaErrorHandler);
-  cb();
+    .on('error', errorHandler);
+
 });
 
 
-gulp.task('clean', function (cb) {
-  return gulp.src([paths.dist], {read: false})
+gulp.task('clean', function () {
+  return gulp.src(paths.dest + '/*', {read: false})
     .pipe(clean());
 });
 
@@ -65,19 +71,35 @@ gulp.task('clean', function (cb) {
  * Scripts
  */
 
-gulp.task('scripts', function (cb) {
-  gulp.src(['src/**/*.js', 'Gulpfile.js'])
+gulp.task('scripts', ['ngtemplates'], function () {
+  return gulp.src(['src/**/*.js', '.tmp/template.js'])
     .pipe(jshint())
     .pipe(jshint.reporter(jshintStylish))
     .pipe(jscs())
-    .pipe(srcTestsFilter)
-    .pipe(dev ? complexity() : gutil.noop())
-    .pipe(srcTestsFilter.restore())
-    .pipe(concat('all.js'))
-    .pipe(gulp.dest(paths.dist + '/release/' + pkg.name + '.js'))
-    .pipe(uglify({outSourceMap: true}))
-    .pipe(gulp.dest(paths.dist + '/release/' + pkg.name + '.min.js'));
-  cb();
+    .pipe(srcNoTestsFilter)
+    .pipe(prod ? complexity() : gutil.noop())
+    .on('error', errorHandler)
+    .pipe(concat(pkg.name + '.js'))
+    .pipe(gulp.dest(paths.dest + '/release/'))
+    .pipe(rename(pkg.name + '.min.js'))
+    .pipe(uglify(/*{outSourceMap: true}*/))
+    .pipe(gulp.dest(paths.dest + '/release/'))
+    .pipe(connect.reload());
+});
+
+/**
+ * Scripts
+ */
+
+gulp.task('styles', function () {
+  return gulp.src(['src/less/main.less', 'src/features/**/less/**/*.less'])
+    .pipe(less({cleanCSS:true}))
+    .pipe(concat(pkg.name + '.css'))
+    .pipe(gulp.dest(paths.dest + '/release/'))
+    .pipe(rename(pkg.name + '.min.css'))
+    .pipe(minifyCSS())
+    .pipe(gulp.dest(paths.dest + '/release/'))
+    .pipe(connect.reload());
 });
 
 /**
@@ -85,7 +107,7 @@ gulp.task('scripts', function (cb) {
  */
 
 gulp.task('ngtemplates', function () {
-  gulp.src(['src/templates/**/*.html', 'src/features/*/templates/**/*.html'])
+  return gulp.src(['src/templates/**/*.html', 'src/features/*/templates/**/*.html'])
     .pipe(ngHtml2Js({
         moduleName: 'ui.grid',
         rename: function (url) {
@@ -102,15 +124,60 @@ gulp.task('ngtemplates', function () {
     .pipe(gulp.dest('.tmp'));
 });
 
-gulp.task('build', ['clean', 'ngtemplates', 'scripts',/* 'fontello', 'less', 'ngdocs', 'copy'*/])
+
+/**
+ * Copy
+ */
+
+
+gulp.task('copy', function () {
+  return gulp.src('misc/demo/*')
+    .pipe(replace(/\/dist\//g, ''))
+    .pipe(gulp.dest(paths.dest))
+    .pipe(connect.reload());
+});
+
+/**
+ * Connect
+ */
+
+gulp.task('connect', ['build'], function () {
+  connect.server({
+    root: ['.'],
+    port: 1337,
+    livereload: true
+  })
+});
+
+/**
+ * Open
+ */
+
+gulp.task('open', ['connect', 'copy'], function () {
+  return gulp.src('./dev/grid-directive.html')
+  .pipe(open('', {
+    url: 'http://localhost:1337/dev/grid-directive.html'
+  }));
+});
+
+/**
+ * Watch
+ */
+
+gulp.task('watch', ['connect'], function () {
+  gulp.watch(['src/**/*.js', '.tmp/templates.js'], ['scripts']);
+  gulp.watch(['src/less/*.less', 'src/features/**/less/**/*.less'], ['styles']);
+  gulp.watch('misc/demo/*.html', ['copy']);
+  gulp.watch(['src/templates/**/*.html', 'src/features/*/templates/**/*.html'], ['ngtemplates']);
+});
+
 
 /**
  * Super Tasks
  */
 
-gulp.task('dev', ['clean', 'code-inspection', 'ngtemplates'], function () {
-  gulp.watch('./{lib,script}/**/*.js', ['jshint']);
-});
+gulp.task('build', ['clean', 'ngtemplates', 'scripts',/* 'fontello', */ 'styles', 'copy', /*'ngdocs'*/]);
+gulp.task('dev', ['connect', 'build', 'open', 'watch']);
 
 gulp.task('dev-test', ['jshint-all', 'test'], function () {
   gulp.watch('./{lib,script,test}/**/*.js', ['jshint-all', 'test']);

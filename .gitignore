@@ -10,6 +10,7 @@ c#################
 
 node_modules
 coverage
+dev
 
 #################
 ## Eclipse
